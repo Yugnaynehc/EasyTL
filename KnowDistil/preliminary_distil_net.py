@@ -66,7 +66,7 @@ y_distil = net_distil.outputs
 
 
 # Compute loss of distil net
-ce = tf.reduce_mean(tl.cost.cross_entropy(y_distil, y_big))
+ce = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_distil, y_big))
 cost = ce
 
 # Compute accuracy
@@ -129,6 +129,7 @@ else:
         for X_train_a, y_train_a in tl.iterate.minibatches(
                 X_train, y_train, batch_size, shuffle=True):
             feed_dict = {X: X_train_a, y_: y_train_a}
+            feed_dict.update(dp_dict_big)
             sess.run(train_op, feed_dict=feed_dict)
 
         if epoch == 1 or epoch % print_freq == 0:
@@ -137,17 +138,19 @@ else:
             for X_train_a, y_train_a in tl.iterate.minibatches(
                     X_train, y_train, batch_size, shuffle=False):
                 feed_dict = {X: X_train_a, y_: y_train_a}
+                feed_dict.update(dp_dict_big)
                 err, ac = sess.run([cost, acc], feed_dict=feed_dict)
                 train_loss += err
                 train_acc += ac
                 n_batch += 1
             print('train loss: %f' % (train_loss / n_batch))
             print('train acc: %f' % (train_acc / n_batch))
-
             val_loss, val_acc, n_batch = 0, 0, 0
             for X_val_a, y_val_a in tl.iterate.minibatches(
                     X_val, y_val, batch_size, shuffle=False):
                 feed_dict = {X: X_val_a, y_: y_val_a}
+                feed_dict.update(dp_dict_big)
+                
                 err, ac = sess.run([cost, acc], feed_dict=feed_dict)
                 val_loss += err
                 val_acc += ac
@@ -162,6 +165,7 @@ test_loss, test_acc, n_batch = 0, 0, 0
 for X_test_a, y_test_a in tl.iterate.minibatches(
         X_test, y_test, batch_size, shuffle=False):
     feed_dict = {X: X_test_a, y_: y_test_a}
+    feed_dict.update(dp_dict_big)
     err, ac = sess.run([cost, acc], feed_dict=feed_dict)
     test_loss += err
     test_acc += ac
