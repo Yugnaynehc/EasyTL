@@ -1,8 +1,11 @@
-# !/usr/bin/python3
+# !/usr/bin/python2
 # Original from:
 # https://github.com/Yugnaynehc/tensorlayer/blob/master/example/tutorial_mnist.py
 
+from __future__ import print_function
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import tensorflow as tf
 import tensorlayer as tl
 import time
@@ -30,8 +33,8 @@ sess = tf.InteractiveSession()
 batch_size = 128
 
 # Read data
-X = tf.placeholder(tf.float32, shape=[batch_size, 28, 28, 1])
-y_ = tf.placeholder(tf.int64, shape=[batch_size, ])
+X = tf.placeholder(tf.float32, shape=[batch_size, 28, 28, 1], name='X')
+y_ = tf.placeholder(tf.int64, shape=[batch_size, ], name='y_')
 
 
 # Build the network
@@ -73,6 +76,10 @@ train_op = tf.train.AdamOptimizer(
 sess.run(tf.initialize_all_variables())
 net.print_params()
 net.print_layers()
+
+writer = tf.train.SummaryWriter('log/test_logs', sess.graph)
+
+writer.flush()
 
 print('learning_rate: %f' % lr)
 print('batch_size: %d' % batch_size)
