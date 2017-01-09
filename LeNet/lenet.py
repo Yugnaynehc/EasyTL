@@ -28,7 +28,9 @@ print('X_test.shape', X_test.shape)
 print('y_test.shape', y_test.shape)
 print('X %s\t y %s' % (X_test.dtype, y_test.dtype))
 
-sess = tf.InteractiveSession()
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+sess = tf.InteractiveSession(config=config)
 
 batch_size = 128
 
@@ -125,7 +127,7 @@ test_loss, test_acc, n_batch = 0, 0, 0
 for X_test_a, y_test_a in tl.iterate.minibatches(
         X_test, y_test, batch_size, shuffle=True):
     dp_dict = tl.utils.dict_to_one(net.all_drop)
-    feed_dict = {X: X_val_a, y_: y_val_a}
+    feed_dict = {X: X_test_a, y_: y_test_a}
     feed_dict.update(dp_dict)
     err, ac = sess.run([cost, acc], feed_dict=feed_dict)
     test_loss += err
