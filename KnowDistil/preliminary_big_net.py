@@ -14,9 +14,9 @@ import os
 
 def big_net(X_placeholder):
     net = tl.layers.InputLayer(X_placeholder, name='input_layer')
-    net = tl.layers.DropoutLayer(net, keep=0.5, name='drop1')
+    net = tl.layers.DropoutLayer(net, keep=0.8, name='drop1')
     net = tl.layers.DenseLayer(net, n_units=1200, act=tf.nn.relu, name='big_fc1')
-    net = tl.layers.DropoutLayer(net, keep=0.5, name='drop2')
+    net = tl.layers.DropoutLayer(net, keep=0.8, name='drop2')
     net = tl.layers.DenseLayer(net, n_units=1200, act=tf.nn.relu, name='big_fc2')
     net = tl.layers.DenseLayer(net, n_units=10, act=tf.identity, name='big_fc3')
     return net
@@ -31,14 +31,6 @@ X_val = np.asarray(X_val, dtype=np.float32)
 y_val = np.asarray(y_val, dtype=np.int64)
 X_test = np.asarray(X_test, dtype=np.float32)
 y_test = np.asarray(y_test, dtype=np.int64)
-
-# print('X_train.shape', X_train.shape)
-# print('y_train.shape', y_train.shape)
-# print('X_val.shape', X_val.shape)
-# print('y_val.shape', y_val.shape)
-# print('X_test.shape', X_test.shape)
-# print('y_test.shape', y_test.shape)
-# print('X %s\t y %s' % (X_test.dtype, y_test.dtype))
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
@@ -85,7 +77,7 @@ else:
     print('train a new model')
 
     # Training settings
-    n_epoch = 20
+    n_epoch = 50
     lr = 1e-4
     print_freq = 5
 
