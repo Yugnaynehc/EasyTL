@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import tensorflow as tf
+from tensorflow.python.ops.nn_grad import _SoftmaxCrossEntropyWithLogitsGrad
 import tensorlayer as tl
 import time
 import os
@@ -30,7 +31,8 @@ def distil_net(X_placeholder, temperature):
     net = tl.layers.DenseLayer(net, n_units=1200, act=tf.nn.relu, name='distil_fc1')
     net = tl.layers.DenseLayer(net, n_units=1200, act=tf.nn.relu, name='distil_fc2')
     net = tl.layers.DenseLayer(net, n_units=10, act=tf.identity, name='distil_fc3')
-    net_scaled = tl.layers.LambdaLayer(net, lambda x: x / temperature, name='distil_scale')
+    net_scaled = tl.layers.LambdaLayer(
+        net, lambda x: x / temperature, name='distil_scale')
     return net_scaled, net
 
 
@@ -68,13 +70,22 @@ y_distil = net_distil.outputs
 y_small = net_small.outputs
 
 
+@tf.RegisterGradient("SoftLoss")
+def _MySoftLossGrad(op, grad1, grad2):
+    t = _SoftmaxCrossEntropyWithLogitsGrad(op, 10 * grad1, grad2)
+    print(t)
+    return t
+
+
+alpha = 0.7
 # Compute loss of distil net
 with tf.name_scope('cross_entropy_between_distill_and_big'):
-    ce1 = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_distil, y_big))
+    with sess.graph.gradient_override_map({"SoftmaxCrossEntropyWithLogits": "SoftLoss"}):
+        ce1 = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_distil, y_big))
 with tf.name_scope('cross_entropy_between_small_and_label'):
     ce2 = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(y_small, y_))
 with tf.name_scope('cost'):
-    cost = tf.add(tf.mul(ce1, T * T, name='weighted'), ce2)
+    cost = alpha * ce1 + (1 - alpha) * ce2
 
 # Compute accuracy
 with tf.name_scope('correct_prediction'):
@@ -140,7 +151,7 @@ else:
             feed_dict = {X: X_train_a, y_: y_train_a}
             feed_dict.update(dp_dict_big)
             sess.run(train_op, feed_dict=feed_dict)
-            
+
         if epoch == 1 or epoch % print_freq == 0:
             print('Epoch %d of %d took %fs' % (epoch, n_epoch, time.time() - start_time))
             train_loss, train_acc, n_batch = 0, 0, 0
@@ -159,7 +170,7 @@ else:
                     X_val, y_val, batch_size, shuffle=False):
                 feed_dict = {X: X_val_a, y_: y_val_a}
                 feed_dict.update(dp_dict_big)
-                
+
                 err, ac = sess.run([cost, acc], feed_dict=feed_dict)
                 val_loss += err
                 val_acc += ac
