@@ -33,7 +33,7 @@ def distil_net(X_placeholder, temperature):
     net = tl.layers.DenseLayer(net, n_units=10, act=tf.identity, name='distil_fc3')
     net_scaled = tl.layers.LambdaLayer(
         net, lambda x: x / temperature, name='distil_scale')
-    return net_scaled, net
+    return net, net_scaled,
 
 
 X_train, y_train, X_val, y_val, X_test, y_test = tl.files.load_mnist_dataset(
@@ -57,29 +57,28 @@ batch_size = 128
 X = tf.placeholder(tf.float32, shape=[batch_size, 784], name='X')
 y_ = tf.placeholder(tf.int64, shape=[batch_size, ], name='y_')
 
-T = 5
+T = 3
 
 # Build the network
 net_big = big_net(X, T)
 # output logits with temperature of big net
 y_big = net_big.outputs
 
-net_distil, net_small = distil_net(X, T)
+net_small, net_distil = distil_net(X, T)
+y_small = net_small.outputs
 # output logits with temperature of distil net
 y_distil = net_distil.outputs
-y_small = net_small.outputs
 
 
 @tf.RegisterGradient("SoftLoss")
 def _MySoftLossGrad(op, grad1, grad2):
-    t = _SoftmaxCrossEntropyWithLogitsGrad(op, 10 * grad1, grad2)
-    print(t)
+    t = _SoftmaxCrossEntropyWithLogitsGrad(op, T * T * grad1, grad2)
     return t
 
 
 alpha = 0.7
 # Compute loss of distil net
-with tf.name_scope('cross_entropy_between_distill_and_big'):
+with tf.name_scope('cross_entropy_between_distil_and_big'):
     with sess.graph.gradient_override_map({"SoftmaxCrossEntropyWithLogits": "SoftLoss"}):
         ce1 = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(y_distil, y_big))
 with tf.name_scope('cross_entropy_between_small_and_label'):
@@ -128,7 +127,7 @@ else:
     # Training settings
     n_epoch = 20
     lr = 1e-3
-    print_freq = 5
+    print_freq = 1
 
     print('learning_rate: %f' % lr)
     print('batch_size: %d' % batch_size)
